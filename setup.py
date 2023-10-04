@@ -19,5 +19,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     packages=["compose"],
-    python_requires=">=3.9",
+    python_requires=">=3.8",
 )
