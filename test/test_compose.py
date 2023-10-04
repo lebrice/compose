@@ -1,3 +1,4 @@
+import functools
 from typing import TypeVar
 
 import pytest

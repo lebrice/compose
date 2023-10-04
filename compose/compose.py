@@ -222,21 +222,8 @@ def sequential(
         ]
     ],
 ) -> Callable[In, Out]:
-    """Compose multiple functions or callables into a single callable.
+    """Returns a callable that applies the functions in sequence.
 
-    `compose(a, b, c)` is the same as `lambda x: (a(b(c(x))))`
+    Take note of the ordering: `sequential(a, b, c)(x) == c(b(a(x)))`
     """
-    # return functools.reduce(
-    #     lambda f, g: lambda *args, **kwargs: f(g(*args, **kwargs)),
-    #     callables,
-    #     lambda x: x,
-    # )
-    return compose(*reversed(callables))
-
-    def _inner(*args: In.args, **kwagrs: In.kwargs):
-        out = callables[0](*args, **kwagrs)
-        for callable in callables:
-            out = callable(out)
-        return out
-
-    return _inner
+    return compose(*reversed(callables))  # type: ignore (Pylance doesn't get that it's OK)
