@@ -1,1 +1,3 @@
-from .compose import compose
+from .compose import compose, sequential
+
+__all__ = ["compose", "sequential"]

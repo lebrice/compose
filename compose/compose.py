@@ -1,10 +1,13 @@
 from __future__ import annotations
+import functools
 import typing
 from typing import Any, Callable, TypeVar, overload
 
 if typing.TYPE_CHECKING:
     from typing_extensions import ParamSpec, Unpack
 
+    # In = TypeVar("In")
+    Out = TypeVar("Out")
     A = TypeVar("A")
     B = TypeVar("B")
     C = TypeVar("C")
@@ -14,85 +17,185 @@ if typing.TYPE_CHECKING:
     G = TypeVar("G")
     H = TypeVar("H")
     T = TypeVar("T")
-    P = ParamSpec("P")
+    In = ParamSpec("In")
 
 
 @overload
-def compose(fn_a: Callable[P, A], /) -> Callable[P, A]:
+def compose(fn_a: Callable[In, Out], /) -> Callable[In, Out]:
     ...
 
 
 @overload
 def compose(
-    fn_a: Callable[P, A],
-    fn_b: Callable[[A], B],
+    fn_b: Callable[[A], Out],
+    fn_a: Callable[In, A],
     /,
-) -> Callable[P, B]:
+) -> Callable[In, Out]:
     ...
 
 
 @overload
 def compose(
-    fn_a: Callable[P, A],
+    fn_c: Callable[[B], Out],
+    fn_b: Callable[[A], B],
+    fn_a: Callable[In, A],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def compose(
+    fn_d: Callable[[C], Out],
+    fn_c: Callable[[B], C],
+    fn_b: Callable[[A], B],
+    fn_a: Callable[In, A],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def compose(
+    fn_e: Callable[[D], Out],
+    fn_d: Callable[[C], D],
+    fn_c: Callable[[B], C],
+    fn_b: Callable[[A], B],
+    fn_a: Callable[In, A],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def compose(
+    fn_f: Callable[[E], Out],
+    fn_e: Callable[[D], E],
+    fn_d: Callable[[C], D],
+    fn_c: Callable[[B], C],
+    fn_b: Callable[[A], B],
+    fn_a: Callable[In, A],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def compose(
+    fn_f: Callable[[E], Out],
+    fn_e: Callable[[D], E],
+    fn_d: Callable[[C], D],
+    fn_c: Callable[[B], C],
+    fn_b: Callable[[A], B],
+    fn_a: Callable[In, A],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def compose(
+    fn_a: Callable[[B], Out],
+    /,
+    *other_fns: Unpack[
+        tuple[Callable[[A], B], Unpack[tuple[Callable[[A], A], ...]], Callable[In, A]]
+    ],
+) -> Callable[In, Out]:
+    ...
+
+
+def compose(
+    *callables: Unpack[
+        tuple[
+            Callable[[A], Out],
+            Unpack[tuple[Unpack[tuple[Callable[[A], A], ...]], Callable[In, A]]],
+        ]
+    ],
+) -> Callable[In, Out]:
+    """Compose multiple functions or callables into a single callable.
+
+    Take note of the ordering:
+    `compose(a, b, c)(x) == c(b(a(x)))`
+    """
+    return functools.reduce(
+        _compose_two_functions,
+        reversed(callables),
+    )
+
+
+def _inner(
+    fn_a: Callable[[A], Out], fn_b: Callable[In, A], /, *args: In.args, **kwargs: In.kwargs
+) -> Out:
+    return fn_a(fn_b(*args, **kwargs))
+
+
+def _compose_two_functions(fn_a: Callable[[A], Out], fn_b: Callable[In, A]) -> Callable[In, Out]:
+    return functools.partial(_inner, fn_a, fn_b)  # type: ignore (pylance doesn't get that it's OK)
+
+
+# @overload
+# def sequential(fn_a: Callable[In, Out], /) -> Callable[In, Out]:
+#     ...
+
+
+@overload
+def sequential(
+    fn_a: Callable[In, A],
+    fn_b: Callable[[A], Out],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def sequential(
+    fn_a: Callable[In, A],
+    fn_b: Callable[[A], B],
+    fn_c: Callable[[B], Out],
+    /,
+) -> Callable[In, Out]:
+    ...
+
+
+@overload
+def sequential(
+    fn_a: Callable[In, A],
     fn_b: Callable[[A], B],
     fn_c: Callable[[B], C],
+    fn_d: Callable[[C], Out],
     /,
-) -> Callable[P, C]:
+) -> Callable[In, Out]:
     ...
 
 
 @overload
-def compose(
-    fn_a: Callable[P, A],
+def sequential(
+    fn_a: Callable[In, A],
     fn_b: Callable[[A], B],
     fn_c: Callable[[B], C],
     fn_d: Callable[[C], D],
+    fn_e: Callable[[D], Out],
     /,
-) -> Callable[P, D]:
+) -> Callable[In, Out]:
     ...
 
 
 @overload
-def compose(
-    fn_a: Callable[P, A],
+def sequential(
+    fn_a: Callable[In, A],
     fn_b: Callable[[A], B],
     fn_c: Callable[[B], C],
     fn_d: Callable[[C], D],
     fn_e: Callable[[D], E],
+    fn_f: Callable[[E], Out],
     /,
-) -> Callable[P, E]:
+) -> Callable[In, Out]:
     ...
 
 
 @overload
-def compose(
-    fn_a: Callable[P, A],
-    fn_b: Callable[[A], B],
-    fn_c: Callable[[B], C],
-    fn_d: Callable[[C], D],
-    fn_e: Callable[[D], E],
-    fn_f: Callable[[E], F],
-    /,
-) -> Callable[P, F]:
-    ...
-
-
-@overload
-def compose(
-    fn_a: Callable[P, A],
-    fn_b: Callable[[A], B],
-    fn_c: Callable[[B], C],
-    fn_d: Callable[[C], D],
-    fn_e: Callable[[D], E],
-    fn_f: Callable[[E], F],
-    /,
-) -> Callable[P, F]:
-    ...
-
-
-@overload
-def compose(
-    fn_a: Callable[P, A],
+def sequential(
+    fn_a: Callable[In, A],
     fn_b: Callable[[A], B],
     fn_c: Callable[[B], C],
     fn_d: Callable[[C], D],
@@ -100,24 +203,38 @@ def compose(
     fn_f: Callable[[E], F],
     /,
     *other_fns: Unpack[
-        tuple[Callable[[E], F], Unpack[tuple[Callable[[G], G], ...]], Callable[[G], H]]
+        tuple[Callable[[E], F], Unpack[tuple[Callable[[G], G], ...]], Callable[[G], Out]]
     ],
-) -> Callable[P, H]:
+) -> Callable[In, Out]:
     ...
 
 
-def compose(
-    first_function: Callable[P, Any],
-    /,
-    *callables: Unpack[tuple[Unpack[tuple[Callable, ...]], Callable[[Any], A]]],
-) -> Callable[P, A]:
+def sequential(
+    *callables: Unpack[
+        tuple[
+            Callable[In, T],
+            Unpack[
+                tuple[
+                    Unpack[tuple[Callable, ...]],
+                    Callable[[T], Out],
+                ]
+            ],
+        ]
+    ],
+) -> Callable[In, Out]:
     """Compose multiple functions or callables into a single callable.
 
     `compose(a, b, c)` is the same as `lambda x: (a(b(c(x))))`
     """
+    # return functools.reduce(
+    #     lambda f, g: lambda *args, **kwargs: f(g(*args, **kwargs)),
+    #     callables,
+    #     lambda x: x,
+    # )
+    return compose(*reversed(callables))
 
-    def _inner(*args: P.args, **kwagrs: P.kwargs):
-        out = first_function(*args, **kwagrs)
+    def _inner(*args: In.args, **kwagrs: In.kwargs):
+        out = callables[0](*args, **kwagrs)
         for callable in callables:
             out = callable(out)
         return out
